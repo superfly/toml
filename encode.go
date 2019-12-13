@@ -2,6 +2,7 @@ package toml
 
 import (
 	"bufio"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -114,6 +115,18 @@ func (enc *Encoder) encode(key Key, rv reflect.Value) {
 	case time.Time, TextMarshaler:
 		enc.keyEqElement(key, rv)
 		return
+	case json.Number:
+		n, _ := rv.Interface().(json.Number)
+
+		if v, err := n.Int64(); err == nil {
+			enc.keyEqElement(key, reflect.ValueOf(v))
+			return
+		}
+		if v, err := n.Float64(); err == nil {
+			enc.keyEqElement(key, reflect.ValueOf(v))
+			return
+		}
+		encPanic(errors.New(fmt.Sprintf("Unable to convert \"%s\" to neither int64 nor float64", n)))
 	}
 
 	k := rv.Kind()
